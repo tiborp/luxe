@@ -63,10 +63,58 @@
 
 		@if (type-of($line-height) == number or $line-height == "inherit" or $line-height == "normal") {
 			line-height: $line-height $important;
+		} @else if ($line-height != "none" and $line-height != false) {
+			@error "D’oh! `#{$line-height}` is not a valid value for `$line-height`.";
 		}
+	}
+}
 
-		@else if ($line-height != 'none' and $line-height != false) {
-			@error "D’oh! `#{$line-height}` is not a valid value for `$line-height`."
+@mixin responsive-font-size(
+	$font-map-key
+) {
+	@if map-has-key($typography, $font-map-key) {
+		$font-map: map-get($typography, $font-map-key);
+
+		@each $breakpoint, $font-size in $font-map {
+			@if $breakpoint == null {
+				@include font-size($font-size);
+			} @else {
+				@include mq($breakpoint) {
+					@include font-size($font-size);
+				}
+			}
 		}
+	} @else {
+		@error "`#{$font-map-key}` is not a key from the `$typography` map.";
+	}
+}
+
+/// Remove the unit of a length
+/// @param {Number} $number - Number to remove unit from
+/// @return {Number} - Unitless number
+@function strip-unit($number) {
+	@if type-of($number) == "number" and not unitless($number) {
+		@return $number / ($number * 0 + 1);
+	}
+
+	@return $number;
+}
+
+
+@mixin fluid-font-size($key) {
+	$element: map-get($fluid-typography, $key);
+	$min-font-size: nth($element, 1);
+	$max-font-size: nth($element, 2);
+	$total-bps: length($mq-breakpoints);
+	$keys: map-keys($mq-breakpoints);
+	$min-bp-key: nth($keys, 1);
+	$max-bp-key: nth($keys, $total-bps);
+	$min-bp: map-get($mq-breakpoints, $min-bp-key);
+	$max-bp: map-get($mq-breakpoints, $max-bp-key);
+
+	font-size: calc(#{$min-font-size} + (#{strip-unit($max-font-size)} - #{strip-unit($min-font-size)}) * ((100vw - #{$min-bp}) / (#{strip-unit($max-bp)} - #{strip-unit($min-bp)})));
+
+	@include mq($max-bp-key) {
+		font-size: $max-font-size;
 	}
 }
